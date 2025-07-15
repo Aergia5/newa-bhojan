@@ -99,34 +99,34 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <Header 
-        cartItems={cartItems}
-        onCartClick={() => setIsCartOpen(true)}
-        onLoginClick={() => setIsAuthModalOpen(true)}
-        onOrdersClick={() => setIsOrdersModalOpen(true)}
-        onAdminClick={() => setIsAdminDashboardOpen(true)}
+      <div className="min-h-screen bg-white">
+        <Header 
+          cartItems={cartItems}
+          onCartClick={() => setIsCartOpen(true)}
+          onLoginClick={() => setIsAuthModalOpen(true)}
+          onOrdersClick={() => setIsOrdersModalOpen(true)}
+          onAdminClick={() => setIsAdminDashboardOpen(true)}
         onSettingsClick={() => setIsSettingsModalOpen(true)}
       />
       <Hero 
         onOrderNow={() => setIsCartOpen(true)}
-      />
-      <ProductGrid 
-        products={featuredProducts}
-        onAddToCart={handleAddToCart}
-        title="Featured Dishes"
-      />
-      <Categories
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onCategorySelect={setSelectedCategory}
-      />
-      <ProductGrid 
-        products={filteredProducts}
-        onAddToCart={handleAddToCart}
-        title="Our Menu"
+        />
+        <ProductGrid 
+          products={featuredProducts}
+          onAddToCart={handleAddToCart}
+          title="Featured Dishes"
+        />
+        <Categories
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onCategorySelect={setSelectedCategory}
+        />
+        <ProductGrid 
+          products={filteredProducts}
+          onAddToCart={handleAddToCart}
+          title="Our Menu"
         id="menu"
-      />
+        />
       {/* About Section */}
       <section id="about" className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -163,31 +163,31 @@ function AppContent() {
           </div>
         </div>
       </section>
-      <Footer />
-      <Cart
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-        onCheckout={handleCheckout}
-      />
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
-      <OrdersModal
-        isOpen={isOrdersModalOpen}
-        onClose={() => setIsOrdersModalOpen(false)}
-        orders={orders}
-      />
-      <AdminDashboard
-        isOpen={isAdminDashboardOpen}
-        onClose={() => setIsAdminDashboardOpen(false)}
-        orders={orders}
-        products={products}
-        onUpdateOrderStatus={handleUpdateOrderStatus}
-      />
+        <Footer />
+        <Cart
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          cartItems={cartItems}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemoveItem={handleRemoveItem}
+          onCheckout={handleCheckout}
+        />
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
+        <OrdersModal
+          isOpen={isOrdersModalOpen}
+          onClose={() => setIsOrdersModalOpen(false)}
+          orders={orders}
+        />
+        <AdminDashboard
+          isOpen={isAdminDashboardOpen}
+          onClose={() => setIsAdminDashboardOpen(false)}
+          orders={orders}
+          products={products}
+          onUpdateOrderStatus={handleUpdateOrderStatus}
+        />
       {/* Settings Modal */}
       {isSettingsModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -203,7 +203,7 @@ function AppContent() {
           </div>
         </div>
       )}
-    </div>
+      </div>
   );
 }
 
