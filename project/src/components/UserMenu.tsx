@@ -10,8 +10,18 @@ interface UserMenuProps {
 
 const UserMenu: React.FC<UserMenuProps> = ({ onOrdersClick, onAdminClick, onSettingsClick }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { user, logout } = useAuth();
   const menuRef = useRef<HTMLDivElement>(null);
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || user?.username || '',
+    phone: user?.phone || '',
+    address: user?.address || '',
+    password: ''
+  });
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState('');
+  const [profileError, setProfileError] = useState('');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -23,6 +33,38 @@ const UserMenu: React.FC<UserMenuProps> = ({ onOrdersClick, onAdminClick, onSett
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setProfileForm({ ...profileForm, [e.target.name]: e.target.value });
+  };
+
+  const handleProfileSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileLoading(true);
+    setProfileSuccess('');
+    setProfileError('');
+    try {
+      const token = localStorage.getItem('newabhojan_token');
+      const res = await fetch(`http://localhost:5000/api/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(profileForm)
+      });
+      if (res.ok) {
+        setProfileSuccess('Profile updated successfully!');
+        setTimeout(() => setProfileOpen(false), 1200);
+      } else {
+        const data = await res.json();
+        setProfileError(data.error || 'Failed to update profile.');
+      }
+    } catch (err) {
+      setProfileError('Error updating profile.');
+    }
+    setProfileLoading(false);
+  };
 
   if (!user) return null;
 
@@ -90,6 +132,17 @@ const UserMenu: React.FC<UserMenuProps> = ({ onOrdersClick, onAdminClick, onSett
               <span>Settings</span>
             </button>
 
+            <button
+              onClick={() => {
+                setProfileOpen(true);
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <User size={16} />
+              <span>Profile</span>
+            </button>
+
             <hr className="my-2" />
 
             <button
@@ -102,6 +155,73 @@ const UserMenu: React.FC<UserMenuProps> = ({ onOrdersClick, onAdminClick, onSett
               <LogOut size={16} />
               <span>Sign Out</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {profileOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
+            <button
+              onClick={() => setProfileOpen(false)}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full"
+            >
+              ×
+            </button>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">Edit Profile</h2>
+            <form onSubmit={handleProfileSave} className="space-y-4">
+              {profileError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{profileError}</div>}
+              {profileSuccess && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">{profileSuccess}</div>}
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={profileForm.name}
+                  onChange={handleProfileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">Phone</label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={profileForm.phone}
+                  onChange={handleProfileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">Address</label>
+                <textarea
+                  name="address"
+                  value={profileForm.address}
+                  onChange={handleProfileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  rows={2}
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">New Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={profileForm.password}
+                  onChange={handleProfileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="Leave blank to keep current password"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                disabled={profileLoading}
+              >
+                {profileLoading ? 'Saving...' : 'Save Changes'}
+              </button>
+            </form>
           </div>
         </div>
       )}

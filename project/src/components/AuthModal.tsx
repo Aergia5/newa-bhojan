@@ -19,18 +19,24 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
     address: ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   
   const { login, register, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (mode === 'login') {
-      const success = await login(formData.email, formData.password);
-      if (success) {
-        onClose();
-        setFormData({ email: '', password: '', name: '', phone: '', address: '' });
+      const successLogin = await login(formData.email, formData.password);
+      if (successLogin) {
+        setSuccess('Login successful!');
+        setTimeout(() => {
+          onClose();
+          setFormData({ email: '', password: '', name: '', phone: '', address: '' });
+          setSuccess('');
+        }, 1000);
       } else {
         setError('Invalid email or password');
       }
@@ -40,12 +46,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
         return;
       }
       
-      const success = await register(formData);
-      if (success) {
-        onClose();
-        setFormData({ email: '', password: '', name: '', phone: '', address: '' });
+      const successRegister = await register(formData);
+      if (successRegister) {
+        setSuccess('Registration successful! Logging you in...');
+        setTimeout(() => {
+          onClose();
+          setFormData({ email: '', password: '', name: '', phone: '', address: '' });
+          setSuccess('');
+        }, 1500);
       } else {
-        setError('User already exists with this email');
+        setError('User already exists with this email or registration failed');
       }
     }
   };
@@ -92,6 +102,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                 {error}
+              </div>
+            )}
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                {success}
               </div>
             )}
 

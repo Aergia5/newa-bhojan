@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Package, Users, DollarSign, TrendingUp, Eye, Edit, Trash2 } from 'lucide-react';
-import { Order, Product } from '../types';
+import { Order, Product, User } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AdminDashboardProps {
   isOpen: boolean;
@@ -17,7 +18,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   products,
   onUpdateOrderStatus 
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'users'>('overview');
+  const [users, setUsers] = useState<User[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const { user } = useAuth();
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', role: 'customer' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
 
   const totalRevenue = orders
     .filter(order => order.status === 'delivered')
@@ -26,6 +34,87 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const totalOrders = orders.length;
   const pendingOrders = orders.filter(order => order.status === 'pending').length;
   const totalProducts = products.length;
+
+  useEffect(() => {
+    if (activeTab === 'users' && user?.role === 'admin') {
+      const fetchUsers = async () => {
+        setUsersLoading(true);
+        try {
+          const token = localStorage.getItem('newabhojan_token');
+          const res = await fetch('http://localhost:5000/api/auth/users', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (res.ok) setUsers(data);
+        } catch (err) {
+          // Optionally handle error
+        }
+        setUsersLoading(false);
+      };
+      fetchUsers();
+    }
+  }, [activeTab, user]);
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      const token = localStorage.getItem('newabhojan_token');
+      const res = await fetch(`http://localhost:5000/api/auth/users/${userId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setUsers(users.filter(u => (u.id || u._id) !== userId));
+      } else {
+        alert('Failed to delete user.');
+      }
+    } catch (err) {
+      alert('Error deleting user.');
+    }
+  };
+
+  const openEditModal = (user: User) => {
+    setEditingUser(user);
+    setEditForm({
+      name: user.name || user.username || '',
+      email: user.email,
+      role: user.role || (user.isAdmin ? 'admin' : 'customer')
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditingUser(null);
+    setEditForm({ name: '', email: '', role: 'customer' });
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
+
+  const handleEditSave = async () => {
+    if (!editingUser) return;
+    setEditLoading(true);
+    try {
+      const token = localStorage.getItem('newabhojan_token');
+      const res = await fetch(`http://localhost:5000/api/auth/users/${editingUser.id || editingUser._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(editForm)
+      });
+      if (res.ok) {
+        setUsers(users.map(u => (u.id || u._id) === (editingUser.id || editingUser._id) ? { ...u, ...editForm } : u));
+        closeEditModal();
+      } else {
+        alert('Failed to update user.');
+      }
+    } catch (err) {
+      alert('Error updating user.');
+    }
+    setEditLoading(false);
+  };
 
   if (!isOpen) return null;
 
@@ -52,7 +141,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {[
                 { id: 'overview', label: 'Overview', icon: TrendingUp },
                 { id: 'orders', label: 'Orders', icon: Package },
-                { id: 'products', label: 'Products', icon: Eye }
+                { id: 'products', label: 'Products', icon: Eye },
+                ...(user?.role === 'admin' ? [{ id: 'users', label: 'Users', icon: Users }] : [])
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -233,9 +323,130 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
             )}
+
+            {activeTab === 'users' && user?.role === 'admin' && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">All Users</h3>
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={userSearch}
+                  onChange={e => setUserSearch(e.target.value)}
+                  className="mb-4 px-3 py-2 border border-gray-300 rounded-lg w-full max-w-xs"
+                />
+                {usersLoading ? (
+                  <p>Loading users...</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {users.filter(u =>
+                          (u.name || u.username || '').toLowerCase().includes(userSearch.toLowerCase()) ||
+                          (u.email || '').toLowerCase().includes(userSearch.toLowerCase())
+                        ).map(u => (
+                          <tr key={u.id || u._id}>
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{u.id || u._id}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{u.name || u.username}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{u.email}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">
+                              {(u.role || u.isAdmin ? 'admin' : 'customer') !== 'admin' && (
+                                <button
+                                  className="text-blue-600 hover:underline mr-2"
+                                  onClick={() => openEditModal(u)}
+                                >
+                                  Edit
+                                </button>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900">
+                              {(u.role || u.isAdmin ? 'admin' : 'customer') !== 'admin' && (
+                                <button
+                                  className="text-red-600 hover:underline"
+                                  onClick={() => handleDeleteUser(u.id || u._id)}
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Edit User Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
+            <button
+              onClick={closeEditModal}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full"
+            >
+              ×
+            </button>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">Edit User</h2>
+            <form onSubmit={e => { e.preventDefault(); handleEditSave(); }} className="space-y-4">
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={editForm.name}
+                  onChange={handleEditChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={editForm.email}
+                  onChange={handleEditChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">Role</label>
+                <select
+                  name="role"
+                  value={editForm.role}
+                  onChange={handleEditChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  disabled={editingUser.isAdmin}
+                >
+                  <option value="customer">Customer</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                disabled={editLoading}
+              >
+                {editLoading ? 'Saving...' : 'Save Changes'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
