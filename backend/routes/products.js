@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const Product = require('../models/Product');
+const { getProducts } = require('../data/store');
 
 // GET /api/products - fetch all products
-router.get('/', async (req, res) => {
+router.get('/', (req, res) => {
   try {
-    const products = await Product.find();
+    const products = getProducts();
     res.json(products);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
